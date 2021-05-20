@@ -25,7 +25,7 @@
 5. Run `conda activate usgs_wildfires_env` to activate the environment for this project.
 6. Run `python -m ipykernel install --user --name=usgs_wildfires_env` to add the conda environment to jupyter.
 7. Run `jupyter lab` to open the project directory in jupyterlab. Be sure to use the **usgs_wildfires_env** kernel so that python uses the proper environment when executing code. 
-8. If you wish to deactivate the conda environment, run `conda deactivate usgs_wildfires_env`. You may choose to do this at the end of a coding/work session.
+8. If you wish to deactivate the conda environment, run `conda deactivate`. You may choose to do this at the end of a coding/work session.
 
 The conda [getting started](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#starting-conda) documentation can also be helpful if needed. 
 
