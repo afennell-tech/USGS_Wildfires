@@ -34,4 +34,4 @@ The conda [getting started](https://conda.io/projects/conda/en/latest/user-guide
 - Navigate to proper directory (**Step 2**)
 - Activate environment (**Step 5**)
 - Open jupyterlab (**Step 7**)
-- Deactviate environment upon finishing the session (**Step 8**)
+- Deactivate environment upon finishing the session (**Step 8**)
