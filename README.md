@@ -1,3 +1,5 @@
+*Note: This is not up-to-date*
+
 # USGS_Wildfires
 
 ## See below for help getting started: 
@@ -22,9 +24,9 @@
 4. Run `conda env create -f environment.yml` to create a new conda environment for this project.
 - The **environment.yml** file should already be in the current working directory after cloning the git repo.
 - To see your different conda environments run `conda info --envs`.
-5. Run `conda activate usgs_wildfires_env` to activate the environment for this project.
-6. Run `python -m ipykernel install --user --name=usgs_wildfires_env` to add the conda environment to jupyter.
-7. Run `jupyter lab` to open the project directory in jupyterlab. Be sure to use the **usgs_wildfires_env** kernel so that python uses the proper environment when executing code. 
+5. Run `conda activate geo_env` to activate the environment for this project.
+6. Run `python -m ipykernel install --user --name=geo_env` to add the conda environment to jupyter.
+7. Run `jupyter lab` to open the project directory in jupyterlab. Be sure to use the **geo_env** kernel so that python uses the proper environment when executing code. 
 8. If you wish to deactivate the conda environment, run `conda deactivate`. You may choose to do this at the end of a coding/work session.
 
 The conda [getting started](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#starting-conda) documentation can also be helpful if needed. 
@@ -33,5 +35,5 @@ The conda [getting started](https://conda.io/projects/conda/en/latest/user-guide
 1. Assuming the conda environment has already been setup correctly, only the following steps from **Initial conda environment setup** should be executed for a new coding/work session: 
 - Navigate to proper directory (**Step 2**)
 - Activate environment (**Step 5**)
-- Open jupyterlab (**Step 7**)
+- Open jupyterlab/jupyternotebook (**Step 7**)
 - Deactivate environment upon finishing the session (**Step 8**)
