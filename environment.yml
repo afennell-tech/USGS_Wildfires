@@ -14,3 +14,5 @@ dependencies:
   - jupyterlab==3.0.16
   - pip==21.1.3
   - tqdm==4.52.2
+  pip: 
+    - wget==3.2
