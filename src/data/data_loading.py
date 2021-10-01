@@ -1,16 +1,15 @@
 import os
 from pathlib import Path
-from src.data.process_data import fpa_fod_clean
 import wget 
 import zipfile
-from configparser import ConfigParser
 
+from src.data.process_data import clean_ca_fire_perimeters, clean_fpa_fod
+from src.data.utils import get_data_config, get_sql_connection, get_table
+
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 import fiona
-import sqlite3
-
-from  .process_data import fpa_fod_clean
 
 # Global variables/Magic numbers; They are specific to the location of data_loading.py
 PROJ_PATH = str(Path(__file__).parent.resolve().parent.resolve().parent)
@@ -18,41 +17,33 @@ RAW_DATA_PATH = os.path.join(PROJ_PATH, 'data', 'raw')
 PROC_DATA_PATH = os.path.join(PROJ_PATH, 'data', 'processed')
 DATA_CFG_PATH = os.path.join(PROJ_PATH, 'configs', 'data_cfg.ini')
 
-def get_data_config(path=DATA_CFG_PATH) -> ConfigParser:
-    """Returns a configParser that uses the dataset configuration file.
-    """
-    config = ConfigParser() # create
-    config.read(path) # populate using corresponding file
-    return config 
+process_data_func_map = {
+    'fpa_fod': clean_fpa_fod,
+    'ca_fire_perimeters': clean_ca_fire_perimeters
+}
 
 
-def get_sql_connection(sql_file): 
-    """Returns a Connection object that represents the input db.
-    """
-    return sqlite3.connect(sql_file)
+# FIXME This will be changed (eventually ...); for now, only loads the fpa_fod (kaggle) or firep (ca_fire_perimeters) dataset
+def load_processed_dataset(dataset, *args):
 
-
-def get_table(table_name, conn):
-    """Returns a df for table from Connection object.
-    """
-    print(f"Loading from sqlite database, this may take a while.")
-    query = "Select * from {}".format(table_name)
-    return pd.read_sql_query(query, conn)
-
-# FIXME This will be changed; for now, only loads the fpa_fod (ie from kaggle) dataset
-def load_processed_dataset(dataset):
-
-    if dataset != 'fpa_fod':
+    if dataset not in ['fpa_fod', 'ca_fire_perimeters']:
         print(f"{dataset} does not have any processing methods. Use load_raw_datasets() instead.")
         return None 
 
     data_cfg = get_data_config()
+    dataset_key = 'clean_all' if 'keep_cols' in args else 'clean'
     # dataset_path = os.path.join(PROC_DATA_PATH, *data_cfg[key][descr].split(','))
-    dataset_path = os.path.join(PROC_DATA_PATH, *data_cfg[dataset]['clean'].split(','))
+    dataset_path = os.path.join(PROC_DATA_PATH, *data_cfg[dataset][dataset_key].split(','))
     if not os.path.exists(dataset_path):
         # create the processed dataset to continue with loading 
-        dfs, _ = load_raw_datasets(dataset)
-        clean_df = fpa_fod_clean(dfs[0])
+        dfs, df_names = load_raw_datasets(dataset)
+        if dataset == 'fpa_fod':
+            raw_df = dfs[0]
+        elif dataset == 'ca_fire_perimeters':
+            firep_idx = [i for i, s in enumerate(df_names) if 'firep' in s][0]
+            raw_df = dfs[firep_idx]
+
+        clean_df = process_data_func_map[dataset](raw_df, args)
     else: 
         clean_df = pd.read_pickle(dataset_path)
     
@@ -143,7 +134,7 @@ def load_raw_datasets(*args):
                 df_names.append(fname.strip(ext))
 
             else: 
-            # file contains multiple layers, so prompt user to specify what layers to load
+                # file contains multiple layers, so prompt user to specify what layers to load
                 print(f'\n {fname} has the following layers: \n {layers} \n')
                 keep_layers = input('What layers you would like to keep? Enter the layer names with 1 space '
                                     'in between, or enter `all` to load all layers. \n')
@@ -176,6 +167,7 @@ def download_raw_datasets(*args):
     """
     data_urls = subset_raw_datasets(args)
     downloaded_files = {} # keys=dataset_name, values=list containing the file names extracted after unzipping
+
     # use wget to download all urls in data_urls (the values)
     for name, url in data_urls.items():
         dataset_path = os.path.join(RAW_DATA_PATH, name)
@@ -267,6 +259,10 @@ def print_available_datasets():
         print(f"{idx}.) {key}\n- {data_cfg['Descriptions'][key]} \n")
 
 # if "__main__":
+#     import sys
+#     sys.path.append('~/DS_Projects/USGS_Wildfires')
+#     sys.path.append('..')
+#     firep = load_processed_dataset('firep', 'keep_cols')
     # pass
     # print_available_datasets()
     # datasets = download_raw_datasets('all')
