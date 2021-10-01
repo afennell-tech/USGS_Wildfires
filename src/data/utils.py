@@ -33,13 +33,30 @@ def get_table(table_name, conn):
     return pd.read_sql_query(query, conn)
 
 
+def process_fpa_fod_time(df, cont=False):
+    col = 'CONT_TIME' if cont else 'DISCOVERY_TIME'
+    # convert to string so we can set the null values to '0000.0'
+    df[col] = df[col].astype(str) 
+    # null values are now the string 'nan'; get the index of these values
+    index = df[df[col] == 'nan'].index
+    # update the null values to '0000.0'
+    df.loc[index, col] = '0000.0'
+    # get the index of invalid time values
+    index = df[df[col].str.len() < 5].index
+    # update the invalid time values to '0000.0'
+    df.loc[index, col] = '0000.0'
+    return df
+
 def insert_time_fpa_fod(row):
-    if len(row['DISCOVERY_TIME']) < 3:
-        return row
-    else:
-        time = pd.to_datetime(row['DISCOVERY_TIME'], format='%H%M')
-        row['DISCOVERY_DATE'] = row['DISCOVERY_DATE'].replace(hour=time.hour, minute=time.minute)
-        return row
+    time = pd.to_datetime(row['DISCOVERY_TIME'], format='%H%M')
+    row['FIRE_DATE'] = row['FIRE_DATE'].replace(hour=time.hour, minute=time.minute)
+    return row
+
+
+def insert_time_fpa_fod_cont(row):
+    time = pd.to_datetime(row['CONT_TIME'], format='%H%M')
+    row['FIRE_CONT_DATE'] = row['FIRE_CONT_DATE'].replace(hour=time.hour, minute=time.minute)
+    return row
 
 
 def fire_size_class(row):
