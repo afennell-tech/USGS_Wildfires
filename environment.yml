@@ -13,6 +13,6 @@ dependencies:
   - notebook==6.4.0
   - jupyterlab==3.0.16
   - pip==21.1.3
-  - tqdm==4.52.2
-  pip: 
+  - tqdm==4.62.2
+  - pip: 
     - wget==3.2
