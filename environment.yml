@@ -5,10 +5,10 @@ channels:
   - defaults
 dependencies:   
   - python==3.9.7
-  - cartopy==0.20.1
-  - bokeh==2.3.3
-  - holoviews==1.14.6
-  - geoviews==1.9.1
+  - cartopy
+  - bokeh<=2.2.2 # streamlit is buggy with new bokeh version
+  - holoviews
+  - geoviews
   - geopandas==0.9.0
   - pandas==1.3.3
   - numpy==1.21.3
