@@ -19,6 +19,6 @@ dependencies:
   - jupyterlab==3.1.7
   - pip==21.2.4
   - tqdm==4.62.2
-  - streamlit
+  - streamlit==1.1.0
   - pip: 
     - wget==3.2
