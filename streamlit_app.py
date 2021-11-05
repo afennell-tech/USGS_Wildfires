@@ -12,9 +12,13 @@ import geopandas as gpd
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
 # from bokeh.io import show, output_file
+import matplotlib.pyplot as plt
 
 # constants HERE
 FIRE_DATA = 'data/subset.pkl'
+
+# set page config and layout
+st.set_page_config(layout='wide')
 
 # helper message
 st.write('Our dashboard starts here!')
@@ -62,16 +66,19 @@ state_df, county_df, div_df = load_boundary_data()
 # load fire related dataset on first run
 fires_df = load_fire_data()
 
+col1, col2, col3 = st.columns([3,1,3]) 
+
 # play around with "Input widgets" - selectbox
-selected_state = st.selectbox("State", fires_df.STATE.values.unique(), index=0)
-st.write(f'Selected State is {selected_state}')
+with col2: 
+    selected_state = st.selectbox("State", fires_df.STATE.values.unique(), index=0)
+    st.write(f'Selected State is {selected_state}')
 
 # define values for slider
-min_val = 0
-max_val = int(fires_df.FIRE_SIZE.max())
+# min_val = 0
+# max_val = int(fires_df.FIRE_SIZE.max())
 # play around with "Input widgets" - slider
-min_fire_size, max_fire_size = st.slider(label="Range of Fire Size", value=(min_val, max_val))
-st.write(f'Selected Range of Fire Size is {min_fire_size} to {max_fire_size}')
+# min_fire_size, max_fire_size = st.slider(label="Range of Fire Size", value=(min_val, max_val))
+# st.write(f'Selected Range of Fire Size is {min_fire_size} to {max_fire_size}')
 
 # get unique months from data to use for the select_slider choices
 month_names = fires_df.index.month_name().unique().tolist()
@@ -81,22 +88,30 @@ selected_months = st.select_slider(label='Range of Months', options=month_names,
 st.write(f'Range of months is {selected_months[0]} to {selected_months[-1]}')
 
 # get unique fire size class from data to use for the select_slider choices
-fire_size_classes = fires_df.FIRE_SIZE_CLASS.values.unique().tolist()
+fire_size_classes = sorted(fires_df.FIRE_SIZE_CLASS.values.unique().tolist())
+# get input from slider
 selected_fs_class = st.select_slider(label='Range of Fire Size Classes', options=fire_size_classes, 
                                      value=(fire_size_classes[0], fire_size_classes[-1]))
-st.write(f'Selected Range of Fire Size Classes is {selected_fs_class[0]} to {selected_fs_class[-1]}')
+# create endpoints and indices
+left_endpoint, right_endpoint = selected_fs_class
+begin_ind = fire_size_classes.index(left_endpoint)
+end_ind = fire_size_classes.index(right_endpoint)
+st.write(f'Selected Range of Fire Size Classes is {left_endpoint} to {right_endpoint}')
 
 # prepare data used for plotting states
 select_state_county_df = county_df[county_df.values == selected_state]
-# st.write(select_state_county_df.astype('object'))
 select_fires_df = fires_df[fires_df.values == selected_state]
+
 # filter by months
 select_fires_df = select_fires_df[select_fires_df.index.month_name().isin(selected_months)]
+
 # IF WE WANTED TO filter by fire size, numerically
 # select_fires_df = select_fires_df.loc[select_fires_df.FIRE_SIZE > min_fire_size]
 # select_fires_df = select_fires_df.loc[select_fires_df.FIRE_SIZE < max_fire_size]
 # filter by fire size class
-select_fires_df = select_fires_df[select_fires_df.FIRE_SIZE_CLASS.isin(selected_fs_class)]
+select_fires_df = select_fires_df[select_fires_df.FIRE_SIZE_CLASS.isin(
+                                    fire_size_classes[begin_ind: end_ind])]
+st.dataframe(select_fires_df.FIRE_SIZE_CLASS.value_counts())
 
 # prepare x,y points for p.circle
 fires_by_state_xs = select_fires_df.geometry.values.x
@@ -122,8 +137,30 @@ p.circle(fires_by_state_xs, fires_by_state_ys, size=5, color='red')
 
 # plot on dashboard
 # st.write(show(p))
-st.bokeh_chart(p, use_container_width=True)
+with col3: 
+    st.bokeh_chart(p, use_container_width=True)
 # selected_state_boundary_df = state_df[state_df.values == selected_state]
 # st.write(selected_state_boundary_df.astype('object'))
 # state_boundaries = gv.Polygons(selected_state_boundary_df.geometry)
 # st.write(show(hv.render(state_boundaries, backend='bokeh')))
+
+# group by class of fire size
+grouped_data = select_fires_df.groupby(['FIRE_SIZE_CLASS']).size()
+with col1: 
+    st.bar_chart(grouped_data)
+
+# top 5 most frequent county and top 5 most safe county
+df_last = select_fires_df.groupby('COUNTY').size().sort_values()[-5:]
+last_5 = pd.DataFrame({'county': df_last.index, 'fire count': df_last.to_list()})#.index.tolist()
+df_fst = select_fires_df.groupby('COUNTY').size().sort_values()[:5]
+first_5 = pd.DataFrame({'county': df_fst.index, 'fire count': df_fst.to_list()})
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.title(f'Counties with least frequent fires {selected_state} during the selected time slot')
+    st.dataframe(first_5)
+
+with col2:
+    st.title(f'Counties with most frequent fires in State {selected_state} during the selected time slot')
+    st.dataframe(last_5)
