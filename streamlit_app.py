@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import datetime
 
 import geoviews as gv
 import holoviews as hv
@@ -28,13 +29,14 @@ def load_boundary_data():
     state = gpd.read_file('data/state')
     county = gpd.read_file('data/county')
     div = gpd.read_file('data/division')
-    return state, county, div
+    contig_state = gpd.read_file('data/contiguous-state')
+    return state, county, div, contig_state
 
 @st.cache
 def load_fire_data():
     fires_df = pd.read_pickle(FIRE_DATA)
     return fires_df
-
+    
 # HELPER FUNCTIONS NEED TO BE MOVED TODO !!!
 # function credit: https://stackoverflow.com/questions/60201306/bokeh-patches-not-loading-multipolygons-with-cds
 def get_MultiPoly(mpoly,coord_type='x'):
@@ -62,9 +64,41 @@ def get_MultiPoly(mpoly,coord_type='x'):
     return c
 
 # load boundary data for map plots on first run
-state_df, county_df, div_df = load_boundary_data()
+state_df, county_df, div_df, contig_state_df = load_boundary_data()
 # load fire related dataset on first run
 fires_df = load_fire_data()
+
+#Map Simulation
+start_sim_button = st.button('Cue Simulation')
+sim = figure(title="Fires by Year Simulation",match_aspect=True,aspect_ratio=2)
+sim_plot = st.empty()
+N = len(contig_state_df)
+select_year_source = ColumnDataSource({ 
+            'x': [get_MultiPoly(contig_state_df.iloc[i]['geometry'],'x') for i in range(0,N)],
+            'y': [get_MultiPoly(contig_state_df.iloc[i]['geometry'],'y') for i in range(0,N)],
+            'n': [i for i in range(0,N)],
+            'state':[contig_state_df.iloc[i]['NAME'] for i in range(0,N)],
+            })
+#keep for now
+sim.multi_polygons(xs='x',ys='y', source=select_year_source,
+                  fill_color={'field': 'n', 'transform': LinearColorMapper(palette=palette,low=0,high=len(select_year_source.data['x']))},
+                  fill_alpha=0.5, line_color="black", line_width=0.5)
+sim_plot.bokeh_chart(sim)
+
+def plot_sim_animation(df, year):
+    #convert lon/lat to x, y coords and add to figure
+    fires_by_year_xs = df.geometry.values.x
+    fires_by_year_ys = df.geometry.values.y
+    
+    sim.circle(fires_by_year_xs, fires_by_year_ys, size=1, color='red')
+    sim_plot.bokeh_chart(sim) #show figure for given year
+    
+#to start simulation
+if(start_sim_button):
+    for year in fires_df.index.year.unique().tolist(): 
+        year_df = fires_df[fires_df.index.year.isin([year])]
+        plot_sim_animation(year_df, year)
+        
 
 col1, col2, col3 = st.columns([3,1,3]) 
 
@@ -87,6 +121,13 @@ selected_months = st.select_slider(label='Range of Months', options=month_names,
                             value=(month_names[0], month_names[-1]))
 st.write(f'Range of months is {selected_months[0]} to {selected_months[-1]}')
 
+# get years from data to use for the select_slider choices
+year_names = fires_df.index.year.unique().tolist()
+# play around with "Input widgets" - select_slider
+selected_years = st.select_slider(label='Range of Years', options=year_names,
+                            value=(year_names[0], year_names[-1]))
+st.write(f'Range of months is {selected_years[0]} to {selected_years[-1]}')
+
 # get unique fire size class from data to use for the select_slider choices
 fire_size_classes = sorted(fires_df.FIRE_SIZE_CLASS.values.unique().tolist())
 # get input from slider
@@ -103,19 +144,36 @@ select_state_county_df = county_df[county_df.values == selected_state]
 select_fires_df = fires_df[fires_df.values == selected_state]
 
 # filter by months
-select_fires_df = select_fires_df[select_fires_df.index.month_name().isin(selected_months)]
+sorted_months = [datetime.date(1900, x, 1).strftime('%B') 
+                     for x in sorted(fires_df.index.month.unique().tolist())]
+first_month, last_month = selected_months
+first_month_idx = sorted_months.index(first_month)
+last_month_idx = sorted_months.index(last_month) + 1
+select_fires_df = select_fires_df[select_fires_df.index.month_name().isin(sorted_months[first_month_idx:last_month_idx])]
+
+# filter by years
+sorted_years = sorted(fires_df.index.year.unique().tolist())
+first_year, last_year = selected_years
+begin_year_idx = sorted_years.index(first_year)
+end_year_idx = sorted_years.index(last_year) + 1
+select_fires_df = select_fires_df[select_fires_df.index.year.isin(sorted_years[begin_year_idx:end_year_idx])]
+#st.dataframe(select_fires_df.index.value_counts())
+
 
 # IF WE WANTED TO filter by fire size, numerically
 # select_fires_df = select_fires_df.loc[select_fires_df.FIRE_SIZE > min_fire_size]
 # select_fires_df = select_fires_df.loc[select_fires_df.FIRE_SIZE < max_fire_size]
 # filter by fire size class
 select_fires_df = select_fires_df[select_fires_df.FIRE_SIZE_CLASS.isin(
-                                    fire_size_classes[begin_ind: end_ind])]
-st.dataframe(select_fires_df.FIRE_SIZE_CLASS.value_counts())
+                                    fire_size_classes[begin_ind: end_ind + 1])]
+#st.dataframe(select_fires_df.FIRE_SIZE_CLASS.value_counts())
 
 # prepare x,y points for p.circle
 fires_by_state_xs = select_fires_df.geometry.values.x
 fires_by_state_ys = select_fires_df.geometry.values.y
+
+# shape_state = select_fires_df.geometry.boundary.plot
+# st.write(shape_state)
 
 # prepare x,y points for p.multi_polygons
 N=len(select_state_county_df) 
@@ -164,3 +222,10 @@ with col1:
 with col2:
     st.title(f'Counties with most frequent fires in State {selected_state} during the selected time slot')
     st.dataframe(last_5)
+    
+freqs = dict(select_fires_df.SPECIFIC_CAUSE.apply(lambda x: x.strip().split('/')[0]).value_counts())
+import wordcloud
+from PIL import Image
+wordcloud = wordcloud.WordCloud(max_font_size=30, background_color="white").fit_words(freqs).to_array()
+image = Image.fromarray(wordcloud)
+st.image(image, width=None)
