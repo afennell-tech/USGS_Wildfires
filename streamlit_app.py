@@ -29,8 +29,8 @@ def load_boundary_data():
     state = gpd.read_file('data/state')
     county = gpd.read_file('data/county')
     div = gpd.read_file('data/division')
-    new_state = gpd.read_file('data/contiguous-state')
-    return state, county, div, new_state
+    contig_state = gpd.read_file('data/contiguous-state')
+    return state, county, div, contig_state
 
 @st.cache
 def load_fire_data():
@@ -64,7 +64,7 @@ def get_MultiPoly(mpoly,coord_type='x'):
     return c
 
 # load boundary data for map plots on first run
-state_df, county_df, div_df, new_state_df = load_boundary_data()
+state_df, county_df, div_df, contig_state_df = load_boundary_data()
 # load fire related dataset on first run
 fires_df = load_fire_data()
 
@@ -72,12 +72,12 @@ fires_df = load_fire_data()
 start_sim_button = st.button('Cue Simulation')
 sim = figure(title="Fires by Year Simulation",match_aspect=True,aspect_ratio=2)
 sim_plot = st.empty()
-N = len(new_state_df)
+N = len(contig_state_df)
 select_year_source = ColumnDataSource({ 
-            'x': [get_MultiPoly(new_state_df.iloc[i]['geometry'],'x') for i in range(0,N)],
-            'y': [get_MultiPoly(new_state_df.iloc[i]['geometry'],'y') for i in range(0,N)],
+            'x': [get_MultiPoly(contig_state_df.iloc[i]['geometry'],'x') for i in range(0,N)],
+            'y': [get_MultiPoly(contig_state_df.iloc[i]['geometry'],'y') for i in range(0,N)],
             'n': [i for i in range(0,N)],
-            'state':[new_state_df.iloc[i]['NAME'] for i in range(0,N)],
+            'state':[contig_state_df.iloc[i]['NAME'] for i in range(0,N)],
             })
 #keep for now
 sim.multi_polygons(xs='x',ys='y', source=select_year_source,
@@ -96,7 +96,6 @@ def plot_sim_animation(df, year):
 #to start simulation
 if(start_sim_button):
     for year in fires_df.index.year.unique().tolist(): 
-        years_list.append(year)
         year_df = fires_df[fires_df.index.year.isin([year])]
         plot_sim_animation(year_df, year)
         
@@ -158,7 +157,7 @@ first_year, last_year = selected_years
 begin_year_idx = sorted_years.index(first_year)
 end_year_idx = sorted_years.index(last_year) + 1
 select_fires_df = select_fires_df[select_fires_df.index.year.isin(sorted_years[begin_year_idx:end_year_idx])]
-st.dataframe(select_fires_df.index.value_counts())
+#st.dataframe(select_fires_df.index.value_counts())
 
 
 # IF WE WANTED TO filter by fire size, numerically
@@ -167,14 +166,14 @@ st.dataframe(select_fires_df.index.value_counts())
 # filter by fire size class
 select_fires_df = select_fires_df[select_fires_df.FIRE_SIZE_CLASS.isin(
                                     fire_size_classes[begin_ind: end_ind + 1])]
-st.dataframe(select_fires_df.FIRE_SIZE_CLASS.value_counts())
+#st.dataframe(select_fires_df.FIRE_SIZE_CLASS.value_counts())
 
 # prepare x,y points for p.circle
 fires_by_state_xs = select_fires_df.geometry.values.x
 fires_by_state_ys = select_fires_df.geometry.values.y
 
-shape_state = select_fires_df.geometry.boundary.plot
-st.write(shape_state)
+# shape_state = select_fires_df.geometry.boundary.plot
+# st.write(shape_state)
 
 # prepare x,y points for p.multi_polygons
 N=len(select_state_county_df) 
@@ -223,3 +222,10 @@ with col1:
 with col2:
     st.title(f'Counties with most frequent fires in State {selected_state} during the selected time slot')
     st.dataframe(last_5)
+    
+freqs = dict(select_fires_df.SPECIFIC_CAUSE.apply(lambda x: x.strip().split('/')[0]).value_counts())
+import wordcloud
+from PIL import Image
+wordcloud = wordcloud.WordCloud(max_font_size=30, background_color="white").fit_words(freqs).to_array()
+image = Image.fromarray(wordcloud)
+st.image(image, width=None)
