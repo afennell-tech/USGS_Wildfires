@@ -173,7 +173,7 @@ st.dataframe(select_fires_df.FIRE_SIZE_CLASS.value_counts())
 fires_by_state_xs = select_fires_df.geometry.values.x
 fires_by_state_ys = select_fires_df.geometry.values.y
 
-shape_state = select_fires_df.geometry.boundary
+shape_state = select_fires_df.geometry.boundary.plot
 st.write(shape_state)
 
 # prepare x,y points for p.multi_polygons
