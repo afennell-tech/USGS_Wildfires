@@ -20,7 +20,7 @@ dependencies:
   - pip==21.2.4
   - tqdm==4.62.2
   - streamlit
-  - boto3
   - wordcloud
   - pip: 
     - wget==3.2
+    - boto3
