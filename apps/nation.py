@@ -30,7 +30,7 @@ def load_boundary_data():
     contig_state = gpd.read_file(f"zip+s3://{S3_BUCKET}/{CONTIG_STATE_KEY}")
     return state, contig_state
 
-@st.cache(hash_funcs={tuple: lambda _: None}, ttl=60*2) # FIXME need to debug caching with s3
+@st.cache(hash_funcs={tuple: id, pd.DataFrame: lambda _: None}, ttl=60*10, max_entries=6) # FIXME need to debug caching with s3
 def load_fire_data(s3_cli, years):
         if isinstance(years, tuple):
             # s_yr = years[0].astype('int') if not isinstance(years[0], int) and years[0] is not None else None

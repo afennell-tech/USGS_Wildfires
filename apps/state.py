@@ -33,7 +33,7 @@ def load_boundary_data():
     county = gpd.read_file(f"zip+s3://{S3_BUCKET}/{COUNTY_KEY}")
     return county
 
-@st.cache(hash_funcs={tuple: lambda _: None}, ttl=60*2) # FIXME need to debug caching with s3
+@st.cache(hash_funcs={tuple: id, pd.DataFrame: lambda _: None}, ttl=60*10, max_entries=6) # FIXME need to debug caching with s3
 def load_fire_data(s3_cli, years):
         if isinstance(years, tuple):
             # s_yr = years[0].astype('int') if not isinstance(years[0], int) and years[0] is not None else None
@@ -56,14 +56,14 @@ def app():
 
     # play around with "Input widgets" - selectbox
     with col2: 
-        selected_state = st.selectbox("State", np.unique(county_df.STUSPS.values).tolist(), index=0)
+        selected_state = st.selectbox("State", np.unique(county_df.STUSPS.values).tolist(), index=4)
     
     st.write(f'Selected State is {selected_state}')
 
     # get years from data to use for the select_slider choices
     # play around with "Input widgets" - select_slider
     selected_years = st.select_slider(label='Range of Years', options=ALL_YEARS,
-                                value=(ALL_YEARS[0], ALL_YEARS[1]))
+                                value=(ALL_YEARS[0], ALL_YEARS[-1]))
     
     # filter years
     select_fires_df = load_fire_data(s3_cli=s3, years=tuple([selected_years[0], selected_years[1]]))
@@ -90,7 +90,7 @@ def app():
     fire_size_classes = sorted(select_fires_df.FIRE_SIZE_CLASS.values.unique().tolist())
     # get input from slider
     selected_fs_class = st.select_slider(label='Range of Fire Size Classes', options=fire_size_classes, 
-                                        value=(fire_size_classes[0], fire_size_classes[1]))
+                                        value=(fire_size_classes[0], fire_size_classes[-1]))
 
     # create endpoints and indices
     left_endpoint, right_endpoint = selected_fs_class
