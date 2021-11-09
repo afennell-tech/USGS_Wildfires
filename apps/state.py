@@ -173,6 +173,7 @@ def app():
     st.write('\n')
     cola, colb = st.columns([3, 2])
     with colb:
+        st.write('Top 6 fire causes')
         st.table(df_temp.head(6))
     freqs = dict(cause_counts)
     wc = wordcloud.WordCloud(max_font_size=30, background_color="white").fit_words(freqs).to_array()
