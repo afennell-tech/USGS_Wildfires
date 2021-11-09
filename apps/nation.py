@@ -3,6 +3,7 @@ import pandas as pd
 import geopandas as gpd
 import boto3
 
+
 from bokeh.plotting import figure
 from bokeh.models import  LinearColorMapper, ColumnDataSource
 from bokeh.palettes import Inferno256 as palette
@@ -45,7 +46,9 @@ def app():
     # both will be stored in cache
     s3 = connect_to_s3()
     state_df, contig_state_df = load_boundary_data()
-    st.write('This is where we allow the user to view a map of the entire USA.')
+    st.write('Below is a simulation of all fires in the US. '
+            'Be warned! This simulation takes anywhere from 5 - 10 minutes to fully execute due to the '
+            'due to the size of the dataset.')
 
     # Simulation using all contiguous states
     st.write('Click `Begin` to vizualize wildfires over the entire contiguous United States from 1992 to 2018.')
@@ -78,3 +81,4 @@ def app():
                 sim_progress.info(f'Wildfire data from {year} has been plotted!')
         sim_progress.empty()
 
+   
