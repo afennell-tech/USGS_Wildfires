@@ -4,6 +4,8 @@ import datetime
 import pandas as pd
 import geopandas as gpd
 import numpy as np
+import wordcloud
+from PIL import Image
 
 from bokeh.plotting import figure
 from bokeh.models import  LinearColorMapper, ColumnDataSource
@@ -143,6 +145,7 @@ def app():
     # group by class of fire size
     grouped_data = select_fires_df.groupby(['FIRE_SIZE_CLASS']).size()
     with col1: 
+        st.write('Fire Class Counts for ' + selected_state)
         st.bar_chart(grouped_data)
 
     # # top 5 most frequent county and top 5 most safe county
@@ -162,3 +165,18 @@ def app():
     #     st.dataframe(last_5)
         
     # freqs = dict(select_fires_df.SPECIFIC_CAUSE.apply(lambda x: x.strip().split('/')[0]).value_counts())
+    
+    cause_counts = select_fires_df.SPECIFIC_CAUSE.apply(lambda x: x.strip().split('/')[0]).value_counts()
+    counts = cause_counts.values
+    causes = cause_counts.index
+    df_temp = pd.DataFrame({'Fire general causes': causes, 'counts': counts})
+    st.write('\n')
+    cola, colb = st.columns([3, 2])
+    with colb:
+        st.table(df_temp.head(6))
+    freqs = dict(cause_counts)
+    wc = wordcloud.WordCloud(max_font_size=30, background_color="white").fit_words(freqs).to_array()
+    image = Image.fromarray(wc)
+    with cola:
+        st.image(image, width=None)
+        st.write(f'Word cloud for State {selected_state} in the selected time span')
