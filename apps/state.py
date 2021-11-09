@@ -49,8 +49,8 @@ def app():
     # both will be stored in cache
     s3 = connect_to_s3()
     county_df = load_boundary_data()
-    st.write('This is where we allow the user to choose a specific state, and we '
-             'display the state map with its corresponding counties as well as other plots.')
+    st.write('Use the sliders and selection boxes below to query the data. '
+        'Check out the resulting graphics for a deeper look into the specified data.')
 
     col1, col2, col3 = st.columns([3,1,3]) 
 
